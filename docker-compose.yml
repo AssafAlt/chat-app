@@ -1,0 +1,42 @@
+version: "3.8"
+services:
+  postgresdb:
+    image: postgres
+    container_name: chatapp_db
+    environment:
+      POSTGRES_DB: chat_app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  springboot-app:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    depends_on:
+      - postgresdb
+    environment:
+      SPRING_APPLICATION_JSON: >
+        {
+          "spring.datasource.url": "jdbc:postgresql://postgresdb:5432/chat_app",
+          "spring.datasource.username": "postgres",
+          "spring.datasource.password": "123456",
+          "spring.datasource.driver-class-name": "org.postgresql.Driver",
+          "spring.jpa.hibernate.ddl-auto": "update",
+          "spring.jpa.properties.hibernate.dialect": "org.hibernate.dialect.PostgreSQLDialect",
+          "spring.jpa.show-sql": "true"
+        }
+    ports:
+      - "8080:8080"
+
+  react-client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - springboot-app
